@@ -56,8 +56,17 @@ for row in probe_data:
     probes[sample_id].append(d)
     counter += 1
 
-print len(probes)
-print len(links)
+# print len(probes)
+# print len(links)
+for p in probes:
+    current = probes[p]
+    initial = current[0]
+    last = current[len(p)-1]
+    
+
+
+
+
     
     
     
