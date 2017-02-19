@@ -61,7 +61,10 @@ for row in probe_data:
 
 # print len(probes)
 # print len(links)
+
 for p in probes:
+    closestdist = {}
+    closestangle = {}
     current = probes[p]
     initial = current[0]
     last = current[len(current)-1]
@@ -71,8 +74,12 @@ for p in probes:
     angle_probe = prob_vector.heading
     if angle_probe < 0:
         angle_probe = angle_probe + 180
-    min_distance = 999999999999
-    min_index = 0
+    avgspeed = 0
+    for i in xrange(len(current)):
+        avgspeed += float(current[i]['speed'])
+    avgspeed = avgspeed / len(current)
+    minspeed = 9999999
+    minindex = 0
 
     for i in xrange(len(links)):
         l = links[i]
@@ -83,16 +90,37 @@ for p in probes:
         angle_link = diff_vector.heading
         if angle_link < 0:
             angle_link = angle_link + 180
-        print "vectors"
-        print diff_vector, prob_vector
-        print "angles"
-        print angle_link, angle_probe
+        links[i]['angle_link'] = angle_link
+        # print "vectors"
+        # print diff_vector, prob_vector
+        # print "angles"
+        # print angle_link, angle_probe
 
         distance = initial_coord.distance(ref_coord)
-        if distance <= min_distance:
-            min_distance = distance
-            min_index = i
-        sys.exit()
+        if len(closestdist) < 50:
+            closestdist[distance]= i
+        else:
+            if max(closestdist.keys()) > distance:
+                del closestdist[max(closestdist.keys())]
+                closestdist[distance] = i
+    for i in closestdist:
+        diff = abs(angle_probe - links[closestdist[i]]['angle_link'])
+        if len(closestangle) < 25:
+            closestangle[diff]= closestdist[i]
+        else:
+            if max(closestangle.keys()) > diff:
+                del closestangle[max(closestangle.keys())]
+                closestangle[diff] = closestdist[i]
+    for i in closestangle:
+        speeddiff = abs(avgspeed - float(links[closestangle[i]]['fromRefSpeedLimit']))
+        if speeddiff < minspeed:
+            minspeed = speeddiff
+            minindex = closestangle[i]
+    
+    
+    sys.exit()
+
+
 
 
 
