@@ -2,6 +2,7 @@ import csv
 import sys
 from LatLon import LatLon
 import numpy as np
+import math
 
 
 link_file = open('probe_data_map_matching/Partition6467LinkData.csv', 'rb')
@@ -117,8 +118,43 @@ for p in probes:
             minspeed = speeddiff
             minindex = closestangle[i]
     
-    
-    sys.exit()
+    # #probe sequence 
+    # x1 = float(initial['lat'])
+    # y1 = float(initial['long'])
+    # z1 = float(initial['alt'])
+
+    # x2 = float(last['lat'])
+    # y2 = float(last['long'])
+    # z2 = float(last['alt'])
+
+
+    # dot_prod = (x1* y1 + y1*y2 + z1*z2)
+    # mag1 = math.sqrt(x1**2 + y1**2 + z1**2)
+    # mag2 = math.sqrt(x2**2 + y2**2 + z2**2)
+
+    xdistance = initial_coord.distance(last_coord)
+    yelevation = float(initial['alt']) - float(last['alt'])
+
+    slope = math.degrees(math.atan(yelevation/xdistance))
+    print "derived slope is: " + str(slope)
+
+    chosen_link = links[minindex]
+
+    if chosen_link['slopeInfo']:
+        slopeInfo = chosen_link['slopeInfo'].replace('|', '/').split('/')
+        slope_sum = 0
+        slope_counter = 0.0
+
+        for i in xrange(1, len(slopeInfo), 2):
+            temp = float(slopeInfo[i])
+            if temp < 0:
+                temp = temp + 180
+            slope_sum += temp
+            counter += 1
+        actual_slope = slope_sum/counter
+        print "actual slope is: " + str(actual_slope)
+    else:
+        print "slope info was not provided for this road link"
 
 
 
