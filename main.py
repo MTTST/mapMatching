@@ -19,13 +19,15 @@ probes = dict()
 
 counter = 0
 
-def cartesian(longitude,latitude, elevation):
+def cartesian(latitude,longitude, elevation):
     R = 6378137.0 + elevation  # relative to centre of the earth
     X = R * math.cos(longitude) * math.sin(latitude)
     Y = R * math.sin(longitude) * math.sin(latitude)
     Z = R * math.cos(latitude)
     return X, Y, Z
-
+    
+def perpdistance()
+    
 #populating link data
 for row in link_data:
     r = row[0].split(',')
@@ -220,8 +222,25 @@ for p in probes:
             point_coord = LatLon(float(point['lat']), float(point['long']))
             distance_from_ref = point_coord.distance(link_ref)*1000.0
             row.append(distance_from_ref)
-            
-            #calculating perpendicular distance            
+            ref_elev = ''
+            nref_elev = ''
+            #calculating perpendicular distance if info for ref and nref        
+            if len(chosen_link['slopeInfo']) > 5:
+                shapeInfo = chosen_link['shapeInfo'].replace('|', '/').split('/')
+                ref_elev = shapeInfo[2]
+                nref_elev = shapeInfo[len(shapeInfo)-1]
+                
+            #elev info not provided
+            print ref_elev
+            print nref_elev
+            if ref_elev == '' or nref_elev == '':
+                row.append('DNE')
+            else:
+                refx, refy, refz = cartesian(float(link_shape[0]),float(link_shape[1]), float(ref_elev))
+                nrefx, nrefy, nrefz = cartesian(float(link_shape[2]),float(link_shape[3]), float(nref_elev))
+                pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
+                
+                
 
             data.append(row)
        
