@@ -16,6 +16,14 @@ probes = dict()
 
 counter = 0
 
+def cartesian(longitude,latitude, elevation):
+    R = 6378137.0 + elevation  # relative to centre of the earth
+    X = R * math.cos(longitude) * math.sin(latitude)
+    Y = R * math.sin(longitude) * math.sin(latitude)
+    Z = R * math.cos(latitude)
+    return X, Y, Z
+
+
 for row in link_data:
     r = row[0].split(',')
     link = dict()
@@ -132,7 +140,11 @@ for p in probes:
     # mag2 = math.sqrt(x2**2 + y2**2 + z2**2)
 
     #derive slope based on probe
-    xdistance = initial_coord.distance(last_coord)
+
+    initial_lat, initial_lon, final_elevation  = cartesian(float(initial['lat']),float(initial['long']), float(initial['alt']))
+    final_lat, final_lon, final_elevation  = cartesian(float(last['lat']),float(last['long']), float(last['alt']))
+    xdistance = math.sqrt(((final_lon - initial_lon)**2) + ((final_lat - initial_lat)**2))
+    #xdistance = initial_coord.distance(last_coord)
     yelevation = float(initial['alt']) - float(last['alt'])
     slope = math.degrees(math.atan(yelevation/xdistance))
     print "derived slope is: " + str(slope)
