@@ -4,6 +4,9 @@ from LatLon import LatLon
 import numpy as np
 import math
 
+#def perpendicular_dist(ref, nref, point):
+    
+
 
 link_file = open('probe_data_map_matching/Partition6467LinkData.csv', 'rb')
 probe_file = open('probe_data_map_matching/Partition6467ProbePoints.csv', 'rb')
@@ -23,7 +26,7 @@ def cartesian(longitude,latitude, elevation):
     Z = R * math.cos(latitude)
     return X, Y, Z
 
-
+#populating link data
 for row in link_data:
     r = row[0].split(',')
     link = dict()
@@ -46,6 +49,7 @@ for row in link_data:
     link['slopeInfo'] = r[16]
     links.append(link)
 
+#populating probe data, uncomment lines 44 and 45 if want ALL probes to load
 for row in probe_data:
     if counter > 128719:
         break
@@ -125,19 +129,6 @@ for p in probes:
             minspeed = speeddiff
             minindex = closestangle[i]
             angle_of_min = i
-    
-    # #probe sequence 
-    # x1 = float(initial['lat'])
-    # y1 = float(initial['long'])
-    # z1 = float(initial['alt'])
-
-    # x2 = float(last['lat'])
-    # y2 = float(last['long'])
-    # z2 = float(last['alt'])
-
-    # dot_prod = (x1* y1 + y1*y2 + z1*z2)
-    # mag1 = math.sqrt(x1**2 + y1**2 + z1**2)
-    # mag2 = math.sqrt(x2**2 + y2**2 + z2**2)
 
     #derive slope based on probe
 
@@ -189,6 +180,10 @@ for p in probes:
         writer = csv.writer(output, delimiter=',')
         data = []
         linkPVID = chosen_link['linkPVID']
+        link_shape = chosen_link['shapeInfo'].replace('|', '/').split('/')
+        link_ref = LatLon(float(link_shape[0]), float(link_shape[1]))
+        link_nref = LatLon(float(link_shape[3]), float(link_shape[4]))
+        
         current_probe = probes[p]
         print "writing"
         for point in current_probe:
@@ -202,6 +197,32 @@ for p in probes:
             row.append(point['speed'])
             row.append(point['heading'])
             row.append(linkPVID)
+            
+            
+            ##calculating direction
+            p_angle = point['heading']
+            l_angle = chosen_link['angle_link']
+            direction = str()
+            
+            if p_angle < 180:
+                if l_angle > 180:
+                    direction = 'T'
+                else:
+                    direction = 'F'
+            else:
+                if l_angle > 180:
+                    direction = 'F'
+                else:
+                    direction = 'T'
+            row.append(direction)
+                
+            ##calculating distance
+            point_coord = LatLon(float(point['lat']), float(point['long']))
+            distance_from_ref = point_coord.distance(link_ref)*1000.0
+            row.append(distance_from_ref)
+            
+            #calculating perpendicular distance            
+
             data.append(row)
        
         writer.writerows(data)
@@ -209,7 +230,6 @@ for p in probes:
     print chosen_spdiff, chosen_angdiff, chosen_distdiff
     
 
-    
 
 
 
