@@ -171,11 +171,12 @@ for p in probes:
         if val == minindex:
             chosen_distdiff = key
             
-    speed_threshold = 0
-    angle_threshold = 0
-    distance_threshold = 0
+    speed_threshold = 25.0
+    angle_threshold = 8.0
+    distance_threshold = 1.5
     
     if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
+        print "entered"
         matched_probes.append(minindex)
     
     print chosen_spdiff, chosen_angdiff, chosen_distdiff
