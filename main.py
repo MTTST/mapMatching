@@ -63,6 +63,8 @@ for row in probe_data:
 # print len(probes)
 # print len(links)
 
+matched_probes = []
+
 for p in probes:
     closestdist = {}
     closestangle = {}
@@ -81,6 +83,7 @@ for p in probes:
     avgspeed = avgspeed / len(current)
     minspeed = 9999999
     minindex = 0
+    angle_of_min = 0
 
     for i in xrange(len(links)):
         l = links[i]
@@ -98,25 +101,28 @@ for p in probes:
         # print angle_link, angle_probe
 
         distance = initial_coord.distance(ref_coord)
-        if len(closestdist) < 50:
+        if len(closestdist) < 20:
             closestdist[distance]= i
         else:
             if max(closestdist.keys()) > distance:
                 del closestdist[max(closestdist.keys())]
                 closestdist[distance] = i
+                
     for i in closestdist:
         diff = abs(angle_probe - links[closestdist[i]]['angle_link'])
-        if len(closestangle) < 25:
+        if len(closestangle) < 5:
             closestangle[diff]= closestdist[i]
         else:
             if max(closestangle.keys()) > diff:
                 del closestangle[max(closestangle.keys())]
                 closestangle[diff] = closestdist[i]
+                
     for i in closestangle:
         speeddiff = abs(avgspeed - float(links[closestangle[i]]['fromRefSpeedLimit']))
         if speeddiff < minspeed:
             minspeed = speeddiff
             minindex = closestangle[i]
+            angle_of_min = i
     
     # #probe sequence 
     # x1 = float(initial['lat'])
@@ -127,19 +133,18 @@ for p in probes:
     # y2 = float(last['long'])
     # z2 = float(last['alt'])
 
-
     # dot_prod = (x1* y1 + y1*y2 + z1*z2)
     # mag1 = math.sqrt(x1**2 + y1**2 + z1**2)
     # mag2 = math.sqrt(x2**2 + y2**2 + z2**2)
 
+    #derive slope based on probe
     xdistance = initial_coord.distance(last_coord)
     yelevation = float(initial['alt']) - float(last['alt'])
-
     slope = math.degrees(math.atan(yelevation/xdistance))
     print "derived slope is: " + str(slope)
 
     chosen_link = links[minindex]
-
+    #find given slope from csv
     if chosen_link['slopeInfo']:
         slopeInfo = chosen_link['slopeInfo'].replace('|', '/').split('/')
         slope_sum = 0
@@ -157,7 +162,26 @@ for p in probes:
         print "slope info was not provided for this road link"
 
 
+    #####thresholding to see if we should match in csv
+    chosen_spdiff = minspeed
+    chosen_angdiff = angle_of_min
+    chosen_distdiff = 0
+    
+    for key, val in closestdist.iteritems():
+        if val == minindex:
+            chosen_distdiff = key
+            
+    speed_threshold = 0
+    angle_threshold = 0
+    distance_threshold = 0
+    
+    if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
+        matched_probes.append(minindex)
+    
+    print chosen_spdiff, chosen_angdiff, chosen_distdiff
+    
 
+    
 
 
 
