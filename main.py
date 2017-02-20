@@ -59,12 +59,6 @@ for row in probe_data:
     probes[sample_id].append(d)
     counter += 1
 
-
-# print len(probes)
-# print len(links)
-
-matched_probes = []
-
 for p in probes:
     closestdist = {}
     closestangle = {}
@@ -175,9 +169,30 @@ for p in probes:
     angle_threshold = 8.0
     distance_threshold = 1.5
     
-    if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
-        print "entered"
-        matched_probes.append(minindex)
+    #UNCOMMENT THIS WHEN DONE WITH TESTING
+    # if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
+    #     print "we have a match! Writing to csv..."
+        
+    with open('Partition6467MatchedPoints.csv', 'w') as output:
+        writer = csv.writer(output, delimiter=',')
+        data = []
+        linkPVID = chosen_link['linkPVID']
+        current_probe = probes[p]
+        print "writing"
+        for point in current_probe:
+            row = []
+            row.append(p)
+            row.append(point['dateTime'])
+            row.append(point['sourceCode'])
+            row.append(point['lat'])
+            row.append(point['long'])
+            row.append(point['alt'])
+            row.append(point['speed'])
+            row.append(point['heading'])
+            row.append(linkPVID)
+            data.append(row)
+       
+        writer.writerows(data)
     
     print chosen_spdiff, chosen_angdiff, chosen_distdiff
     
