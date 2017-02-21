@@ -26,7 +26,9 @@ def cartesian(latitude,longitude, elevation):
     Z = R * math.cos(latitude)
     return X, Y, Z
     
-def perpdistance()
+def perpDistance(x1, y1, x2, y2, x0, y0):
+    distance = abs(((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1))/ (math.sqrt((y2 - y1)**2 + (x2 -x1)**2))
+    return distance
     
 #populating link data
 for row in link_data:
@@ -231,19 +233,18 @@ for p in probes:
                 nref_elev = shapeInfo[len(shapeInfo)-1]
                 
             #elev info not provided
-            print ref_elev
-            print nref_elev
+
             if ref_elev == '' or nref_elev == '':
                 row.append('DNE')
             else:
                 refx, refy, refz = cartesian(float(link_shape[0]),float(link_shape[1]), float(ref_elev))
                 nrefx, nrefy, nrefz = cartesian(float(link_shape[2]),float(link_shape[3]), float(nref_elev))
                 pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
-                
-                
-
+                perp_distance = perpDistance(refx, refy, nrefx, nrefy, pointx, pointy)
+                row.append(perp_distance)
             data.append(row)
        
+        print data
         writer.writerows(data)
     
     print chosen_spdiff, chosen_angdiff, chosen_distdiff
