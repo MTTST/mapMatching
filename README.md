@@ -35,10 +35,10 @@ MatchedPoints Record Format:
 		distFromLink	is the perpendicular distance from the map-matched probe point location on the link to the probe point in decimal meters.
 
 In Terminal, the program will print the following in order:
-1. The derived slope
-2. If the slope was provided in Link Data then the average calculate actual slope
-3. The difference between the 2
-4. When there is a match and it writes to the CSV
+	1. The derived slope
+	2. The average calculated actual slope if provided in Link Data
+	3. The difference between the derived slope and actual slope
+	4. When there is a match and it indicates that the program is writing to the csv
 
 ##Resources
 We referenced the following resources:
