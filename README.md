@@ -34,7 +34,7 @@ MatchedPoints Record Format:
 		distFromRef	is the distance from the reference node to the map-matched probe point location on the link in decimal meters.
 		distFromLink	is the perpendicular distance from the map-matched probe point location on the link to the probe point in decimal meters.
 
-In Terminal, the program will print the following in order:
+In Terminal, the program will print the following in order:<br />
 	1. The derived slope <br />
 	2. The average calculated actual slope if provided in Link Data <br />
 	3. The difference between the derived slope and actual slope <br />
