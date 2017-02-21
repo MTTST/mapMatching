@@ -4,10 +4,7 @@ from LatLon import LatLon
 import numpy as np
 import math
 
-#def perpendicular_dist(ref, nref, point):
-    
-
-
+#input data files
 link_file = open('probe_data_map_matching/Partition6467LinkData.csv', 'rb')
 probe_file = open('probe_data_map_matching/Partition6467ProbePoints.csv', 'rb')
 
@@ -19,17 +16,20 @@ probes = dict()
 
 counter = 0
 
+#function that converts LatLon points with altitude to cartesian x,y,z coords
 def cartesian(latitude,longitude, elevation):
     R = 6378137.0 + elevation  # relative to centre of the earth
     X = R * math.cos(longitude) * math.sin(latitude)
     Y = R * math.sin(longitude) * math.sin(latitude)
     Z = R * math.cos(latitude)
     return X, Y, Z
-    
+ 
+#function that takes two points (x1, y1) and (x2, y2) that define a vector, and find the perp distance to point (x0, y0): all in cartesian coords   
 def perpDistance(x1, y1, x2, y2, x0, y0):
     distance = abs(((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1))/ (math.sqrt((y2 - y1)**2 + (x2 -x1)**2))
     return distance
 
+#function that returns euclidean distance between two points: must be in cartesian coords
 def euclidean_distance(x1, y1, x2, y2):
     distance = math.sqrt(((x1-x2)**2) + ((y1-y2)**2))
     return distance
@@ -85,12 +85,19 @@ for p in probes:
     current = probes[p]
     initial = current[0]
     last = current[len(current)-1]
+    #first point in sequence
     initial_coord = LatLon(float(initial['lat']), float(initial['long']))
+    #last point in sequence
     last_coord = LatLon(float(last['lat']), float(last['long']))
+    #vectorize probe sequence
     prob_vector = initial_coord - last_coord
     angle_probe = prob_vector.heading
+    
+    #convert all angles to positive domain
     if angle_probe < 0:
         angle_probe = angle_probe + 180
+    
+    #find average speed across the probe sequence 
     avgspeed = 0
     for i in xrange(len(current)):
         avgspeed += float(current[i]['speed'])
@@ -102,18 +109,20 @@ for p in probes:
     for i in xrange(len(links)):
         l = links[i]
         shapeInfo = l['shapeInfo'].replace('|', '/').split('/')
+        #ref and nref latlong coords
         ref_coord = LatLon(float(shapeInfo[0]), float(shapeInfo[1]))
         nref_coord = LatLon(float(shapeInfo[3]), float(shapeInfo[4]))
+        
+        #vectorize link
         diff_vector = ref_coord - nref_coord
         angle_link = diff_vector.heading
+        
+        #convert all angles to the positive domain 
         if angle_link < 0:
             angle_link = angle_link + 180
         links[i]['angle_link'] = angle_link
-        # print "vectors"
-        # print diff_vector, prob_vector
-        # print "angles"
-        # print angle_link, angle_probe
 
+        #find distance between starting points - maintain list of 20 closest
         distance = initial_coord.distance(ref_coord)
         if len(closestdist) < 20:
             closestdist[distance]= i
@@ -121,7 +130,8 @@ for p in probes:
             if max(closestdist.keys()) > distance:
                 del closestdist[max(closestdist.keys())]
                 closestdist[distance] = i
-                
+    
+    #find difference in angles - maintain filter to 5 closest
     for i in closestdist:
         diff = abs(angle_probe - links[closestdist[i]]['angle_link'])
         if len(closestangle) < 5:
@@ -130,7 +140,8 @@ for p in probes:
             if max(closestangle.keys()) > diff:
                 del closestangle[max(closestangle.keys())]
                 closestangle[diff] = closestdist[i]
-                
+    
+    #find link that has closest speed limit 
     for i in closestangle:
         speeddiff = abs(avgspeed - float(links[closestangle[i]]['fromRefSpeedLimit']))
         if speeddiff < minspeed:
@@ -138,18 +149,18 @@ for p in probes:
             minindex = closestangle[i]
             angle_of_min = i
 
-    #derive slope based on probe
-
+    #derive slope based on probe sequence - convert to cartesian and 
     initial_lat, initial_lon, final_elevation  = cartesian(float(initial['lat']),float(initial['long']), float(initial['alt']))
     final_lat, final_lon, final_elevation  = cartesian(float(last['lat']),float(last['long']), float(last['alt']))
+    #run
     xdistance = math.sqrt(((final_lon - initial_lon)**2) + ((final_lat - initial_lat)**2))
-    #xdistance = initial_coord.distance(last_coord)
+    #rise
     yelevation = float(initial['alt']) - float(last['alt'])
     slope = math.degrees(math.atan(yelevation/xdistance))
     print "Derived slope: " + str(slope)
 
     chosen_link = links[minindex]
-    #find given slope from csv
+    #find given slope from csv - avg across slope info
     if chosen_link['slopeInfo']:
         slopeInfo = chosen_link['slopeInfo'].replace('|', '/').split('/')
         slope_sum = 0
@@ -157,6 +168,7 @@ for p in probes:
 
         for i in xrange(1, len(slopeInfo), 2):
             temp = float(slopeInfo[i])
+            #convert to positive domain
             if temp < 0:
                 temp = temp + 180
             slope_sum += temp
@@ -168,7 +180,7 @@ for p in probes:
         print "Slope info was not provided for this road link"
 
 
-    #####thresholding to see if we should match in csv
+    #####thresholding to see if good match/write in csv
     chosen_spdiff = minspeed
     chosen_angdiff = angle_of_min
     chosen_distdiff = 0
@@ -177,10 +189,12 @@ for p in probes:
         if val == minindex:
             chosen_distdiff = key
             
+    #criteria thresholds
     speed_threshold = 25.0
     angle_threshold = 8.0
     distance_threshold = 1.5
     
+    #matched link within threshold limits
     if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
         print "we have a match! Writing to csv..."
         with open('Partition6467MatchedPoints.csv', 'a') as output:
@@ -237,10 +251,9 @@ for p in probes:
                     distance_ref = euclidean_distance(refx, refy, pointx, pointy)
                     row.append(distance_ref)
             
-            
+                #calculating perpendicular distance if info for ref and nref        
                 ref_elev = ''
                 nref_elev = ''
-                #calculating distance from ref and perpendicular distance if info for ref and nref        
                 if len(chosen_link['slopeInfo']) > 5:
                     shapeInfo = chosen_link['shapeInfo'].replace('|', '/').split('/')
                     ref_elev = shapeInfo[2]
@@ -255,7 +268,9 @@ for p in probes:
                     pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
                     perp_distance = perpDistance(refx, refy, nrefx, nrefy, pointx, pointy)
                     row.append(perp_distance)
+                #append each probe sequence to data dump
                 data.append(row)
+            #write to csv
             writer.writerows(data)    
 
 
