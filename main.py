@@ -29,6 +29,10 @@ def cartesian(latitude,longitude, elevation):
 def perpDistance(x1, y1, x2, y2, x0, y0):
     distance = abs(((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1))/ (math.sqrt((y2 - y1)**2 + (x2 -x1)**2))
     return distance
+
+def euclidean_distance(x1, y1, x2, y2):
+    distance = math.sqrt(((x1-x2)**2) + ((y1-y2)**2))
+    return distance
     
 #populating link data
 for row in link_data:
@@ -142,7 +146,7 @@ for p in probes:
     #xdistance = initial_coord.distance(last_coord)
     yelevation = float(initial['alt']) - float(last['alt'])
     slope = math.degrees(math.atan(yelevation/xdistance))
-    print "derived slope is: " + str(slope)
+    print "Derived slope: " + str(slope)
 
     chosen_link = links[minindex]
     #find given slope from csv
@@ -158,9 +162,10 @@ for p in probes:
             slope_sum += temp
             counter += 1
         actual_slope = slope_sum/counter
-        print "actual slope is: " + str(actual_slope)
+        print "Actual slope: " + str(actual_slope)
+        print "Difference in slopes: " + str(abs(actual_slope - slope))
     else:
-        print "slope info was not provided for this road link"
+        print "Slope info was not provided for this road link"
 
 
     #####thresholding to see if we should match in csv
@@ -176,79 +181,82 @@ for p in probes:
     angle_threshold = 8.0
     distance_threshold = 1.5
     
-    #UNCOMMENT THIS WHEN DONE WITH TESTING
-    # if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
-    #     print "we have a match! Writing to csv..."
+    if chosen_spdiff < speed_threshold and chosen_angdiff < angle_threshold and chosen_distdiff < distance_threshold:
+        print "we have a match! Writing to csv..."
+        with open('Partition6467MatchedPoints.csv', 'a') as output:
+            writer = csv.writer(output, delimiter=',')
+            data = []
+            linkPVID = chosen_link['linkPVID']
+            link_shape = chosen_link['shapeInfo'].replace('|', '/').split('/')
+            link_ref = LatLon(float(link_shape[0]), float(link_shape[1]))
+            link_nref = LatLon(float(link_shape[3]), float(link_shape[4]))
         
-    with open('Partition6467MatchedPoints.csv', 'w') as output:
-        writer = csv.writer(output, delimiter=',')
-        data = []
-        linkPVID = chosen_link['linkPVID']
-        link_shape = chosen_link['shapeInfo'].replace('|', '/').split('/')
-        link_ref = LatLon(float(link_shape[0]), float(link_shape[1]))
-        link_nref = LatLon(float(link_shape[3]), float(link_shape[4]))
-        
-        current_probe = probes[p]
-        print "writing"
-        for point in current_probe:
-            row = []
-            row.append(p)
-            row.append(point['dateTime'])
-            row.append(point['sourceCode'])
-            row.append(point['lat'])
-            row.append(point['long'])
-            row.append(point['alt'])
-            row.append(point['speed'])
-            row.append(point['heading'])
-            row.append(linkPVID)
+            current_probe = probes[p]
+            for point in current_probe:
+                row = []
+                row.append(p)
+                row.append(point['dateTime'])
+                row.append(point['sourceCode'])
+                row.append(point['lat'])
+                row.append(point['long'])
+                row.append(point['alt'])
+                row.append(point['speed'])
+                row.append(point['heading'])
+                row.append(linkPVID)
             
             
-            ##calculating direction
-            p_angle = point['heading']
-            l_angle = chosen_link['angle_link']
-            direction = str()
-            
-            if p_angle < 180:
-                if l_angle > 180:
-                    direction = 'T'
-                else:
-                    direction = 'F'
-            else:
-                if l_angle > 180:
-                    direction = 'F'
-                else:
-                    direction = 'T'
-            row.append(direction)
-                
-            ##calculating distance
-            point_coord = LatLon(float(point['lat']), float(point['long']))
-            distance_from_ref = point_coord.distance(link_ref)*1000.0
-            row.append(distance_from_ref)
-            ref_elev = ''
-            nref_elev = ''
-            #calculating perpendicular distance if info for ref and nref        
-            if len(chosen_link['slopeInfo']) > 5:
-                shapeInfo = chosen_link['shapeInfo'].replace('|', '/').split('/')
-                ref_elev = shapeInfo[2]
-                nref_elev = shapeInfo[len(shapeInfo)-1]
-                
-            #elev info not provided
+                ##calculating direction
+                p_angle = point['heading']
+                l_angle = chosen_link['angle_link']
+                direction = str()
 
-            if ref_elev == '' or nref_elev == '':
-                row.append('DNE')
-            else:
-                refx, refy, refz = cartesian(float(link_shape[0]),float(link_shape[1]), float(ref_elev))
-                nrefx, nrefy, nrefz = cartesian(float(link_shape[2]),float(link_shape[3]), float(nref_elev))
-                pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
-                perp_distance = perpDistance(refx, refy, nrefx, nrefy, pointx, pointy)
-                row.append(perp_distance)
-            data.append(row)
-       
-        print data
-        writer.writerows(data)
-    
-    print chosen_spdiff, chosen_angdiff, chosen_distdiff
-    
+                if p_angle < 180:
+                    if l_angle > 180:
+                        direction = 'T'
+                    else:
+                        direction = 'F'
+                else:
+                    if l_angle > 180:
+                        direction = 'F'
+                    else:
+                        direction = 'T'
+                row.append(direction)
+                
+                ##calculating distance
+                ref_elev0 = ''
+                if len(chosen_link['slopeInfo']) > 2:
+                    shapeInfo = chosen_link['shapeInfo'].replace('|', '/').split('/')
+                    ref_elev0 = shapeInfo[2]
+                
+                #do not have reference elevation so cannot convert to cartesian
+                if ref_elev0 == '':
+                    row.append('DNE')
+                else:
+                    refx, refy, refz = cartesian(float(link_shape[0]),float(link_shape[1]), float(ref_elev0))
+                    pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
+                    distance_ref = euclidean_distance(refx, refy, pointx, pointy)
+                    row.append(distance_ref)
+            
+            
+                ref_elev = ''
+                nref_elev = ''
+                #calculating distance from ref and perpendicular distance if info for ref and nref        
+                if len(chosen_link['slopeInfo']) > 5:
+                    shapeInfo = chosen_link['shapeInfo'].replace('|', '/').split('/')
+                    ref_elev = shapeInfo[2]
+                    nref_elev = shapeInfo[len(shapeInfo)-1]
+                
+                #elev info not provided so cannot convert to cartesian for perp distance
+                if ref_elev == '' or nref_elev == '':
+                    row.append('DNE')
+                else:
+                    refx, refy, refz = cartesian(float(link_shape[0]),float(link_shape[1]), float(ref_elev))
+                    nrefx, nrefy, nrefz = cartesian(float(link_shape[2]),float(link_shape[3]), float(nref_elev))
+                    pointx, pointy, pointz = cartesian(float(point['lat']), float(point['long']), float(point['alt']))
+                    perp_distance = perpDistance(refx, refy, nrefx, nrefy, pointx, pointy)
+                    row.append(perp_distance)
+                data.append(row)
+            writer.writerows(data)    
 
 
 
